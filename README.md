@@ -8,11 +8,14 @@ direnv allow
 ### to setup a new project:
 ```shell
 idf.py create-project speaker
+chmod -R +rw speaker
 cd speaker
 idf.py set-target esp32s3
 ```
 
 ### Build, Flash, and Monitor
+To get the esp32 in boot mode, hold down the boot button while connecting the USB cable.
+
 ```shell
 idf.py build flash monitor
 ```
