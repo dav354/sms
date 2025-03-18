@@ -1,0 +1,14 @@
+fatal: not a git repository (or any of the parent directories): .git
+CMake Error at build/CMakeFiles/git-data/grabRef.cmake:48 (file):
+  file failed to open for reading (No such file or directory):
+
+    /home/david/Downloads/git/sms/speaker/build/CMakeFiles/git-data/head-ref
+Call Stack (most recent call first):
+  /nix/store/fmn799jqhyhrvpsqwv0g9irf31iw820h-esp-idf-v5.4/tools/cmake/third_party/GetGitRevisionDescription.cmake:83 (include)
+  /nix/store/fmn799jqhyhrvpsqwv0g9irf31iw820h-esp-idf-v5.4/tools/cmake/third_party/GetGitRevisionDescription.cmake:93 (get_git_head_revision)
+  /nix/store/fmn799jqhyhrvpsqwv0g9irf31iw820h-esp-idf-v5.4/tools/cmake/project.cmake:693 (git_describe)
+  CMakeLists.txt:6 (project)
+
+
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
