@@ -1,5 +1,5 @@
 {
-  description = "Dev shell for ESP-IDF with additional pip dependencies";
+  description = "Dev shell for ESP-IDF";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -20,11 +20,6 @@
     devShells.${system}.default = pkgs.mkShell {
       buildInputs =[
         espDev.packages.${system}.esp-idf-full
-        pkgs.python313
-        pkgs.python3Packages.virtualenv
-        pkgs.ffmpeg
-        pkgs.python313Packages.aubio
-        pkgs.python313Packages.pydub
       ];
     };
   };
