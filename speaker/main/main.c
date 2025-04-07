@@ -1,90 +1,64 @@
+/*
+For ESP32-S3
+Code by David Glaesle & ChatBro
+
+This code plays some tones with a speaker.
+The Speaker needs to be connected to GND and Pin 21.
+*/
+
+#include "driver/gpio.h"
+#include "driver/timer.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/ledc.h"
-#include "esp_log.h"
 
-// Define some note frequencies (in Hz)
-#define NOTE_C4  262
-#define NOTE_D4  294
-#define NOTE_E4  330
-#define NOTE_F4  349
-#define NOTE_G4  392
-#define NOTE_A4  440
-#define NOTE_B4  494
-#define NOTE_C5  523
+#define SPEAKER_PIN 21
+#define TIMER_DIVIDER 80 // Annahme: APB-Clock = 80 MHz → Timer läuft mit 1 MHz
+#define DESIRED_FREQ_HZ 100 // Gewünschte Frequenz (Ton)
+#define HALF_PERIOD_US                                                         \
+  (1000000 / (DESIRED_FREQ_HZ * 2)) // Halbe Periode in µs (bei 100 Hz: 5000 µs)
 
-static const char *TAG = "MUSIC";
+static volatile bool speaker_state = false;
 
-// Helper function to set the current frequency by reconfiguring the LEDC timer
-void set_frequency(int freq_hz)
-{
-    ledc_timer_config_t ledc_timer = {
-        .speed_mode       = LEDC_LOW_SPEED_MODE,
-        .duty_resolution  = LEDC_TIMER_13_BIT,
-        .timer_num        = LEDC_TIMER_0,
-        .freq_hz          = freq_hz,
-        .clk_cfg          = LEDC_AUTO_CLK,
-    };
-    ledc_timer_config(&ledc_timer);
+// Timer-Interrupt-Routine (muss im IRAM liegen)
+static void IRAM_ATTR timer_isr(void *arg) {
+  // Interrupt-Status löschen
+  TIMER_0.int_clr_timers.t0 = BIT((int)arg);
+  // Alarm wieder aktivieren (Auto-Reload ist gesetzt)
+  TIMER_0.hw_timer[(int)arg].config.alarm_en = TIMER_ALARM_EN;
+  // Lautsprecher-Pin umschalten
+  speaker_state = !speaker_state;
+  gpio_set_level(SPEAKER_PIN, speaker_state);
 }
 
-// Plays one tone at a given frequency for a specified duration (milliseconds)
-void play_tone(int freq, int duration_ms)
-{
-    ESP_LOGI(TAG, "Playing frequency %d Hz for %d ms", freq, duration_ms);
+void app_main(void) {
+  // Konfiguriere den Lautsprecher-Pin
+  gpio_reset_pin(SPEAKER_PIN);
+  gpio_set_direction(SPEAKER_PIN, GPIO_MODE_OUTPUT);
+  gpio_set_level(SPEAKER_PIN, 0);
 
-    // Set the PWM frequency
-    set_frequency(freq);
+  // Timer-Konfiguration
+  timer_config_t config = {
+      .divider = TIMER_DIVIDER,
+      .counter_dir = TIMER_COUNT_UP,
+      .counter_en = TIMER_PAUSE, // zunächst pausieren
+      .alarm_en = TIMER_ALARM_EN,
+      .auto_reload = true, // automatisch neu laden
+  };
 
-    // Set ~50% duty (for a 13-bit resolution, half of 8192 is 4096)
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 4096);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+  // Initialisiere Timer 0 in Timer-Gruppe 0
+  timer_init(TIMER_GROUP_0, TIMER_0, &config);
+  // Setze Alarmwert für den halben Perioden-Takt (z. B. 5000 µs für 100 Hz)
+  timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, HALF_PERIOD_US);
+  // Aktiviere den Interrupt für den Timer
+  timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+  timer_isr_register(TIMER_GROUP_0, TIMER_0, timer_isr, (void *)TIMER_0,
+                     ESP_INTR_FLAG_IRAM, NULL);
+  // Starte den Timer
+  timer_start(TIMER_GROUP_0, TIMER_0);
 
-    // Wait for the tone to finish
-    vTaskDelay(pdMS_TO_TICKS(duration_ms));
-
-    // Turn the tone off
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-
-    // Small delay between notes
-    vTaskDelay(pdMS_TO_TICKS(100));
-}
-
-void app_main(void)
-{
-    ESP_LOGI(TAG, "Configuring LEDC channel for buzzer on GPIO18");
-
-    // Configure a default channel (GPIO18)
-    ledc_channel_config_t ledc_channel = {
-        .gpio_num   = 18,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel    = LEDC_CHANNEL_0,
-        .timer_sel  = LEDC_TIMER_0,
-        .duty       = 0,
-        .hpoint     = 0,
-        .intr_type  = LEDC_INTR_DISABLE,
-    };
-    ledc_channel_config(&ledc_channel);
-
-    // Example melody: C, D, E, F, G, A, B, C (all 500 ms)
-    int melody[] = {
-        NOTE_C4, NOTE_D4, NOTE_E4, NOTE_F4,
-        NOTE_G4, NOTE_A4, NOTE_B4, NOTE_C5
-    };
-    int durations_ms[] = {
-        500, 500, 500, 500,
-        500, 500, 500, 500
-    };
-    int length = sizeof(melody) / sizeof(melody[0]);
-
-    // Loop forever playing the melody repeatedly
-    while (true) {
-        for (int i = 0; i < length; i++) {
-            play_tone(melody[i], durations_ms[i]);
-        }
-
-        // Optional pause between repetitions
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+  // Endlosschleife, damit das Programm aktiv bleibt
+  while (1) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
 }
