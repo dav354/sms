@@ -9,18 +9,21 @@
     };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    espDev,
-  }: let
-    system = "x86_64-linux";
-    pkgs = import nixpkgs {inherit system;};
-  in {
-    devShells.${system}.default = pkgs.mkShell {
-      buildInputs =[
-        espDev.packages.${system}.esp-idf-full
-      ];
+  outputs = { self, nixpkgs, espDev, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+        };
+      };
+    in {
+      devShells.${system}.default = pkgs.mkShell {
+        buildInputs = [
+          espDev.packages.${system}.esp-idf-full
+          pkgs.hterm
+        ];
+      };
     };
-  };
 }
