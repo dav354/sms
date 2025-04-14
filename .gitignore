@@ -1,3 +1,5 @@
 .direnv
+.idea
 */build/
 **/.cache/
+**/managed_components

@@ -7,9 +7,10 @@ direnv allow
 
 ### to setup a new project:
 ```shell
-idf.py create-project speaker
-chmod -R +rw speaker
-cd speaker
+export NAME=
+idf.py create-project $NAME
+chmod -R +rw $NAME
+cd $NAME
 idf.py set-target esp32s3
 ```
 
