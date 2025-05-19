@@ -20,3 +20,9 @@ To get the esp32 in boot mode, hold down the boot button while connecting the US
 ```shell
 idf.py build flash monitor
 ```
+
+## Install idf packages
+
+```shell
+idf.py add-dependency "espressif/mpu6050^1.2.0"
+```
