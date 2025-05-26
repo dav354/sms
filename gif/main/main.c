@@ -19,22 +19,20 @@
 #include <sys/stat.h>
 #include <sys/unistd.h>
 
-static const char *TAG = "MINIMAL_DRAW_TEST_APP"; // Changed TAG for clarity
+static const char *TAG = "FINAL_GIF_APP";
 
 // Display and LVGL Globals
 #define LCD_H_RES 240
 #define LCD_V_RES 320
 #define LVGL_TICK_PERIOD_MS 10
-#define BUF_LINES                                                              \
-  80 // Increased buffer lines back, as 40 might be too small even for full
-     // screen updates
+#define BUF_LINES 80
 #define COLOR_SIZE sizeof(lv_color_t)
 
 static lv_disp_draw_buf_t disp_buf;
 static lv_disp_drv_t disp_drv;
 static esp_lcd_panel_handle_t panel_handle = NULL;
 
-// Display Hardware Pinout (ILI9341 - 8080 Parallel) - KEEP AS PER YOUR HARDWARE
+// Display Hardware Pinout (ILI9341 - 8080 Parallel) - VERIFY YOUR PINS
 #define PIN_RST 15
 #define PIN_BLK 13
 #define PIN_CS 7
@@ -43,16 +41,17 @@ static esp_lcd_panel_handle_t panel_handle = NULL;
 #define PIN_RD 9
 static const int data_pins[8] = {36, 35, 38, 39, 40, 41, 42, 37};
 
-// SD Card SPI Pinout - KEEP AS PER YOUR HARDWARE
+// SD Card SPI Pinout - VERIFY YOUR PINS
 #define PIN_SD_SS 45
 #define PIN_SD_DI 48
 #define PIN_SD_DO 47
 #define PIN_SD_SCK 21
 
 #define SD_MOUNT_POINT "/sdcard"
-// #define GIF_PATH "S:/animation.gif" // GIF loading temporarily disabled
+#define GIF_LVGL_PATH "S:/anim.gif"     // CHANGED to 8.3 filename
+#define GIF_VFS_PATH "/sdcard/anim.gif" // CHANGED to 8.3 filename
 
-// LVGL Log Function (NEW)
+// LVGL Log Function
 #if LV_USE_LOG
 static void lvgl_log_cb(const char *buf) { ESP_LOGI("LVGL_LOG", "%s", buf); }
 #endif
@@ -60,9 +59,10 @@ static void lvgl_log_cb(const char *buf) { ESP_LOGI("LVGL_LOG", "%s", buf); }
 // LVGL Flush Callback
 static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area,
                           lv_color_t *color_p) {
+  ESP_LOGI(TAG, "Flush callback called! Area: x1=%d, y1=%d, x2=%d, y2=%d",
+           area->x1, area->y1, area->x2, area->y2);
+
   esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)drv->user_data;
-  // ESP_LOGI(TAG, "Flushing area: x1=%d, y1=%d, x2=%d, y2=%d", area->x1,
-  // area->y1, area->x2, area->y2); // Verbose log
   esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1,
                             area->y2 + 1, color_p);
   lv_disp_flush_ready(drv);
@@ -74,8 +74,7 @@ static void lvgl_tick_cb(void *arg) {
   lv_tick_inc(LVGL_TICK_PERIOD_MS);
 }
 
-// Function to initialize and mount SD card (Still needed for filesystem init if
-// we re-enable GIF)
+// Function to initialize and mount SD card
 static esp_err_t init_sd_card(void) {
   ESP_LOGI(TAG, "Initializing SD card...");
   esp_err_t ret;
@@ -83,7 +82,7 @@ static esp_err_t init_sd_card(void) {
       .format_if_mount_failed = false,
       .max_files = 5,
       .allocation_unit_size = 16 * 1024};
-  sdmmc_card_t *card; // Not used in this minimal test but kept for structure
+  sdmmc_card_t *card;
   spi_bus_config_t bus_cfg = {.mosi_io_num = PIN_SD_DI,
                               .miso_io_num = PIN_SD_DO,
                               .sclk_io_num = PIN_SD_SCK,
@@ -107,14 +106,15 @@ static esp_err_t init_sd_card(void) {
     spi_bus_free(SPI2_HOST);
     return ret;
   }
-  ESP_LOGI(TAG, "SD card mounted.");
+  ESP_LOGI(TAG, "SD card mounted successfully.");
   return ESP_OK;
 }
 
 void app_main(void) {
-  ESP_LOGI(TAG, "Starting Minimal Draw Test Demo");
+  ESP_LOGI(TAG, "--- STARTING FINAL GIF DEMO ---");
 
-  // --- Initialize Display Hardware ---
+  // --- 1. Initialize Display Hardware ---
+  ESP_LOGI(TAG, "1. Initializing Display Hardware...");
   esp_lcd_i80_bus_handle_t i80_bus = NULL;
   esp_lcd_i80_bus_config_t bus_config = {
       .dc_gpio_num = PIN_DC,
@@ -146,30 +146,28 @@ void app_main(void) {
       esp_lcd_new_panel_ili9341(io_handle, &panel_config, &panel_handle));
   ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
   ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
-  ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle,
-                                             true)); // Keep this, often needed
+  ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
   ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
   gpio_config_t bk_gpio_config = {.mode = GPIO_MODE_OUTPUT,
                                   .pin_bit_mask = 1ULL << PIN_BLK};
   ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
   gpio_set_level(PIN_BLK, 1);
+  ESP_LOGI(TAG, "Display Initialized.");
 
-  // --- Initialize SD Card (still call it to ensure VFS is set up for
-  // lv_fs_stdio_init) ---
+  // --- 2. Initialize SD Card ---
   if (init_sd_card() != ESP_OK) {
-    ESP_LOGW(TAG, "SD card init failed (continuing for draw test).");
-    // Don't halt, try to continue with the draw test
+    ESP_LOGE(TAG, "SD card init failed! Halting.");
+    while (1) {
+      vTaskDelay(pdMS_TO_TICKS(1000));
+    }
   }
 
-  // --- Initialize LVGL ---
-  ESP_LOGI(TAG, "Initializing LVGL...");
+  // --- 3. Initialize LVGL ---
+  ESP_LOGI(TAG, "3. Initializing LVGL...");
   lv_init();
-
-// NEW: Initialize LVGL logging
 #if LV_USE_LOG
   lv_log_register_print_cb(lvgl_log_cb);
 #endif
-
   lv_color_t *buf1 = heap_caps_malloc(LCD_H_RES * BUF_LINES * COLOR_SIZE,
                                       MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
   lv_color_t *buf2 = heap_caps_malloc(LCD_H_RES * BUF_LINES * COLOR_SIZE,
@@ -182,8 +180,6 @@ void app_main(void) {
   disp_drv.flush_cb = lvgl_flush_cb;
   disp_drv.draw_buf = &disp_buf;
   disp_drv.user_data = panel_handle;
-  // disp_drv.full_refresh = 1; // Try uncommenting this if partial updates are
-  // suspected
   lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
   assert(disp);
   const esp_timer_create_args_t lvgl_tick_timer_args = {
@@ -192,37 +188,43 @@ void app_main(void) {
   ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
   ESP_ERROR_CHECK(
       esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000));
+  lv_fs_stdio_init();
+  ESP_LOGI(TAG, "LVGL Initialized.");
 
-  // lv_fs_stdio_init(); // Not strictly needed if not loading from file for
-  // this test
+  // --- 4. Create LVGL UI ---
+  ESP_LOGI(TAG, "4. Creating UI...");
+  lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x000000),
+                            LV_PART_MAIN); // Black background
 
-  // --- Create Minimal LVGL UI (Just a Red Background) ---
-  ESP_LOGI(TAG, "Creating RED Screen Test UI...");
-
-  lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0xFF0000),
-                            LV_PART_MAIN); // Try to make screen RED
-  // lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_PART_MAIN); //
-  // Or try BLACK
-
-  /*
-  // --- Code for GIF (Temporarily Disabled) ---
-  lv_obj_t *gif_obj = lv_gif_create(lv_scr_act());
-  if (gif_obj) {
-      ESP_LOGI(TAG, "Setting GIF source to: %s", GIF_PATH);
-      lv_gif_set_src(gif_obj, GIF_PATH);
-      lv_obj_align(gif_obj, LV_ALIGN_CENTER, 0, 0);
+  struct stat st;
+  if (stat(GIF_VFS_PATH, &st) != 0) {
+    ESP_LOGE(TAG, "!!! GIF file not found at %s. Check SD card.", GIF_VFS_PATH);
+    lv_obj_t *err_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(err_label, "ERROR:\nanim.gif\nnot found!");
+    lv_obj_set_style_text_color(err_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(err_label, lv_color_hex(0xFF0000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(err_label, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_align(err_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(err_label, 10, LV_PART_MAIN);
+    lv_obj_set_width(err_label, lv_pct(80));
+    lv_obj_align(err_label, LV_ALIGN_CENTER, 0, 0);
   } else {
-      ESP_LOGE(TAG, "Failed to create GIF object!");
-      lv_obj_t * err_label = lv_label_create(lv_scr_act());
-      lv_label_set_text(err_label, "GIF Error!");
-      // ... styling for error label ...
-      lv_obj_align(err_label, LV_ALIGN_CENTER, 0, 0);
+    ESP_LOGI(TAG, "SUCCESS! Found %s. Size: %ld bytes.", GIF_VFS_PATH,
+             (long)st.st_size);
+    ESP_LOGI(TAG, "Creating GIF object...");
+    lv_obj_t *gif_obj = lv_gif_create(lv_scr_act());
+    if (gif_obj) {
+      lv_gif_set_src(gif_obj, GIF_LVGL_PATH);
+      lv_obj_align(gif_obj, LV_ALIGN_CENTER, 0, 0);
+      ESP_LOGI(TAG, "GIF object created and source set.");
+    } else {
+      ESP_LOGE(TAG, "Failed to create LVGL GIF object!");
+    }
   }
-  */
 
-  ESP_LOGI(TAG, "Minimal Draw Test Demo Running");
+  ESP_LOGI(TAG, "--- Main loop starting ---");
   while (1) {
-    vTaskDelay(pdMS_TO_TICKS(10)); // Reduced delay slightly
+    vTaskDelay(pdMS_TO_TICKS(10));
     lv_timer_handler();
   }
 }

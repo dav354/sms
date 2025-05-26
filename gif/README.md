@@ -10,3 +10,5 @@ Component config
         ├── [*] GIF decoder
         └── [*] File system on top of stdio API
 ```
+
+and set the drive letter to '83' (S).
