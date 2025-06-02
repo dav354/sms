@@ -44,6 +44,8 @@ Ein Gerät (der Master, meist ein Mikrocontroller) steuert die Kommunikation. Es
    Aktiviert das gewünschte Slave-Gerät („active low“). Jeder Slave braucht typischerweise eine eigene CS-Leitung.
    → Ermöglicht gezielte Kommunikation mit mehreren Geräten.
 
+
+![spi](../assets/spi.png)
 ---
 
 ### **Ablauf einer SPI-Kommunikation**
@@ -87,29 +89,3 @@ Es gibt **vier SPI-Modi** – sie legen fest, an welcher Taktflanke Daten übert
 * **Speicherchips** (Flash, EEPROM)
 * **ADCs/DACs**
 * **Controller-zu-Controller-Kommunikation**
-
----
-
-### **Vorteile**
-
-* **Einfach:** Protokolllogik ist simpel, kaum Overhead.
-* **Schnell:** Sehr hohe Übertragungsraten (oft mehrere MHz).
-* **Full-Duplex:** Lesen und Schreiben gleichzeitig möglich.
-* **Flexible Datenlänge:** Nicht auf 8 Bit festgelegt.
-* **Keine Pull-Ups:** Meist keine externen Widerstände nötig.
-
----
-
-### **Nachteile**
-
-* **Pinbedarf:** Mindestens 4 Pins plus 1 CS pro Slave (mehr Slaves = mehr Pins!).
-* **Kein Acknowledge:** Empfangsbestätigung muss auf höherer Ebene gelöst werden.
-* **Nur ein Master:** Multi-Master wird nicht standardmäßig unterstützt.
-* **Keine Adressierung:** Slaves werden über CS-Leitungen, nicht per Adressen ausgewählt.
-* **Signalqualität:** Für sehr hohe Geschwindigkeiten ist sauberes PCB-Layout wichtig.
-
----
-
-### **Fazit**
-
-**SPI** ist eine bewährte, sehr schnelle und einfach zu nutzende serielle Schnittstelle für viele Peripheriegeräte. Sie ist ideal, wenn Geschwindigkeit wichtiger ist als die Minimierung der Pinanzahl – besonders für schnelle Displays, Speicher und Sensoren.
