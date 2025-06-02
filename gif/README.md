@@ -45,7 +45,7 @@ Ein Gerät (der Master, meist ein Mikrocontroller) steuert die Kommunikation. Es
    → Ermöglicht gezielte Kommunikation mit mehreren Geräten.
 
 
-![spi](../assets/spi.png)
+![spi](assets/spi.png)
 ---
 
 ### **Ablauf einer SPI-Kommunikation**
