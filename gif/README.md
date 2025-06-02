@@ -45,7 +45,6 @@ Ein Gerät (der Master, meist ein Mikrocontroller) steuert die Kommunikation. Es
    → Ermöglicht gezielte Kommunikation mit mehreren Geräten.
 
 
-![spi](assets/spi.png)
 ---
 
 ### **Ablauf einer SPI-Kommunikation**
@@ -77,7 +76,8 @@ Es gibt **vier SPI-Modi** – sie legen fest, an welcher Taktflanke Daten übert
 | 2     | 1    | 0    | High      | 1. Flanke (fallend)  |
 | 3     | 1    | 1    | High      | 2. Flanke (steigend) |
 
-**Warum gibt’s verschiedene Modi?** → Damit sich verschiedene Bausteine, die unterschiedlich ticken, problemlos verbinden lassen.
+
+![spi](assets/spi.png)
 
 ---
 
