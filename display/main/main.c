@@ -70,9 +70,9 @@ static void backlight_on(void) {
       .pin_bit_mask = 1ULL << PIN_BLK, // Bitmaske für den BLK-Pin
       .mode = GPIO_MODE_OUTPUT         // Pin als Ausgang konfigurieren
   };
-  gpio_config(&io);           // GPIO-Konfiguration anwenden
+  gpio_config(&io);               // GPIO-Konfiguration anwenden
   gpio_set_level(PIN_BLK, 1); // BLK-Pin auf High setzen, um die Beleuchtung
-                              // einzuschalten (Annahme: High = An)
+                                              // einzuschalten (Annahme: High = An)
 }
 
 // Callback-Funktion für den LVGL-Tick-Timer.
@@ -82,13 +82,14 @@ static void lv_tick_cb(void *arg) {
   (void)arg;       // Argument wird nicht verwendet, Cast zu void um
                    // Compiler-Warnungen zu vermeiden.
   lv_tick_inc(10); // LVGL mitteilen, dass 10 Millisekunden vergangen sind
-                   // (entsprechend der Timer-Periode).
+                               // (entsprechend der Timer-Periode).
 }
 
 // Callback-Funktion, die von LVGL aufgerufen wird, um Daten auf das Display zu
-// schreiben ("flushen"). drv: Zeiger auf den LVGL Display-Treiber. a:   Der
-// Bereich (Area) des Displays, der aktualisiert werden soll. map: Zeiger auf
-// den Puffer mit den Farbdaten (Pixeln), die gezeichnet werden sollen.
+// schreiben ("flushen"). 
+// drv: Zeiger auf den LVGL Display-Treiber. 
+// a:   Der Bereich (Area) des Displays, der aktualisiert werden soll. 
+// map: Zeiger auf den Puffer mit den Farbdaten (Pixeln), die gezeichnet werden sollen.
 static void flush_cb(lv_disp_drv_t *drv, const lv_area_t *a, lv_color_t *map) {
   // Sendet die Bitmap-Daten (Pixeldaten) an das LCD-Panel für den angegebenen
   // Bereich.
@@ -108,8 +109,8 @@ void app_main(void) {
   backlight_on(); // Hintergrundbeleuchtung einschalten.
   gpio_set_direction(
       PIN_RD, GPIO_MODE_OUTPUT); // RD-Pin (Read) als Ausgang konfigurieren.
-  gpio_set_level(PIN_RD, 1);     // RD-Pin auf High setzen (inaktiv), da wir nur
-                                 // schreiben und nicht vom Display lesen.
+  gpio_set_level(PIN_RD, 1);    // RD-Pin auf High setzen (inaktiv), da wir nur
+                                                // schreiben und nicht vom Display lesen.
 
   /* 2 ─ LVGL Zeichenpuffer (Double-Buffering vermeidet Tearing-Artefakte) */
   // Größe eines einzelnen Framebuffers in Bytes berechnen.
