@@ -6,7 +6,7 @@
 // ===== LVGL und Display Treiber Includes =====
 #include "driver/gpio.h" // Für die GPIO (General Purpose Input/Output) Steuerung
 #include "esp_heap_caps.h" // Für erweiterte Speicherallokierungsfunktionen (DMA-fähiger Speicher)
-#include "esp_lcd_ili9341.h" // Spezifischer Treiber für den ILI9341 LCD-Controller
+#include "esp_lcd_ili9341.h" // Spezifischer Treiber für den ILI9341 LCD-ControllerR
 #include "esp_lcd_panel_io.h" // Generische LCD Panel I/O Funktionen
 #include "esp_lcd_panel_ops.h" // Operationen für LCD Panels (wie initialisieren, zeichnen)
 #include "esp_lcd_panel_vendor.h" // Hersteller-spezifische Panel-Konfigurationen (hier ILI9341)
