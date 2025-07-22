@@ -12,9 +12,9 @@
 long faculty(int n) {
     long ret = 1;
     for (int i = 2; i <= n; ++i) {
-        result *= i; // Same as: result = result * i;
+        ret *= i; // Same as: result = result * i;
     }
-    return result;
+    return ret;
 }
 
 int get_number_from_user() {
