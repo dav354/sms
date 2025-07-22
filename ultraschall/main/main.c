@@ -5,27 +5,18 @@
 #include <freertos/task.h>
 #include <stdio.h>
 
-// === Pin Definitions ===
 #define TRIGGER_GPIO 1
 #define ECHO_GPIO 2
 
-// === Constants ===
 #define SPEED_OF_SOUND_CM_PER_US 0.0343f // Speed of sound in cm/µs
 
-// === Logging Tag ===
 static const char *TAG = "ULTRASONIC";
 
-// === Global Variables for Interrupt Handling ===
 // volatile is used as these variables are accessed by an ISR
 static volatile int64_t echo_start_time = 0;
 static volatile int64_t echo_end_time = 0;
 static volatile bool pulse_detected = false;
 
-/**
- * @brief GPIO interrupt handler to capture echo pulse timing.
- *
- * This ISR is triggered on both the rising and falling edge of the echo pin.
- */
 static void IRAM_ATTR gpio_isr_handler(void *arg) {
   if (gpio_get_level(ECHO_GPIO)) {
     // Rising edge: record the start time
@@ -37,11 +28,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg) {
   }
 }
 
-/**
- * @brief Configure and initialize GPIO pins for the sensor.
- */
 static void ultrasonic_gpio_init(void) {
-  // --- Configure Trigger Pin ---
   gpio_config_t trig_io_conf = {
       .pin_bit_mask = (1ULL << TRIGGER_GPIO),
       .mode = GPIO_MODE_OUTPUT,
@@ -49,7 +36,6 @@ static void ultrasonic_gpio_init(void) {
   };
   gpio_config(&trig_io_conf);
 
-  // --- Configure Echo Pin ---
   gpio_config_t echo_io_conf = {
       .pin_bit_mask = (1ULL << ECHO_GPIO),
       .mode = GPIO_MODE_INPUT,
@@ -67,9 +53,6 @@ static void ultrasonic_gpio_init(void) {
   ESP_LOGI(TAG, "GPIOs configured.");
 }
 
-/**
- * @brief Sends a 10 microsecond trigger pulse to the sensor.
- */
 static void send_trigger_pulse(void) {
   gpio_set_level(TRIGGER_GPIO, 0);
   esp_rom_delay_us(2);
@@ -78,9 +61,6 @@ static void send_trigger_pulse(void) {
   gpio_set_level(TRIGGER_GPIO, 0);
 }
 
-/**
- * @brief Main task for measuring and printing the distance.
- */
 void ultrasonic_test_task(void *pvParameters) {
   ultrasonic_gpio_init();
 
