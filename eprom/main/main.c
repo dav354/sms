@@ -18,7 +18,6 @@ int app_main(void)
     const char *write_data = "Hallo World. Hello World. Hello World. Hello World. Hello World.";
     const uint8_t full_mem_addr = 0x00;
 
-    uint8_t *byte = write_data;
     uint8_t addr = full_mem_addr;
     uint8_t read_data[100] = {0};
 
@@ -34,11 +33,9 @@ int app_main(void)
     printf("Finished writing.\n");
     
     // read the data
-    byte = read_data;
     addr = full_mem_addr;
     for(int i = 0; i < 65; i++){
-        read_byte(addr, byte);
-        byte++;
+        read_byte(addr, &read_data[i]);
         addr++;
     }
     printf("%s\n", read_data);
