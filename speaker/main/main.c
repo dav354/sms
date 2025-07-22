@@ -1,34 +1,22 @@
-/*
-For ESP32-S3
-Code by David Glaesle & ChatBro
-
-This code plays some tones with a speaker.
-The Speaker needs to be connected to GND and Pin 21.
-*/
-
 #include "driver/gpio.h"
-#include "driver/timer.h"
-#include "esp_log.h"
+#include "driver/gptimer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #define SPEAKER_PIN 21
-#define TIMER_DIVIDER 80 // Annahme: APB-Clock = 80 MHz → Timer läuft mit 1 MHz
-#define DESIRED_FREQ_HZ 100 // Gewünschte Frequenz (Ton)
-#define HALF_PERIOD_US                                                         \
-  (1000000 / (DESIRED_FREQ_HZ * 2)) // Halbe Periode in µs (bei 100 Hz: 5000 µs)
+#define DESIRED_FREQ_HZ 100 // Ton
 
 static volatile bool speaker_state = false;
 
-// Timer-Interrupt-Routine (muss im IRAM liegen)
-static void IRAM_ATTR timer_isr(void *arg) {
-  // Interrupt-Status löschen
-  TIMER_0.int_clr_timers.t0 = BIT((int)arg);
-  // Alarm wieder aktivieren (Auto-Reload ist gesetzt)
-  TIMER_0.hw_timer[(int)arg].config.alarm_en = TIMER_ALARM_EN;
+// Gibt true zurück, wenn eine höhere Task aufgeweckt werden muss
+static bool IRAM_ATTR timer_on_alarm_cb(gptimer_handle_t timer,
+                                        const gptimer_alarm_event_data_t *edata,
+                                        void *user_data) {
   // Lautsprecher-Pin umschalten
   speaker_state = !speaker_state;
   gpio_set_level(SPEAKER_PIN, speaker_state);
+  // Keine höhere Task muss aufgeweckt werden
+  return false;
 }
 
 void app_main(void) {
@@ -37,25 +25,33 @@ void app_main(void) {
   gpio_set_direction(SPEAKER_PIN, GPIO_MODE_OUTPUT);
   gpio_set_level(SPEAKER_PIN, 0);
 
-  // Timer-Konfiguration
-  timer_config_t config = {
-      .divider = TIMER_DIVIDER,
-      .counter_dir = TIMER_COUNT_UP,
-      .counter_en = TIMER_PAUSE, // zunächst pausieren
-      .alarm_en = TIMER_ALARM_EN,
-      .auto_reload = true, // automatisch neu laden
+  gptimer_handle_t gptimer = NULL;
+  gptimer_config_t timer_config = {
+      .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+      .direction = GPTIMER_COUNT_UP,
+      .resolution_hz = 1 * 1000 * 1000, // 1 MHz, 1 Tick = 1 µs
   };
+  gptimer_new_timer(&timer_config, &gptimer);
 
-  // Initialisiere Timer 0 in Timer-Gruppe 0
-  timer_init(TIMER_GROUP_0, TIMER_0, &config);
-  // Setze Alarmwert für den halben Perioden-Takt (z. B. 5000 µs für 100 Hz)
-  timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, HALF_PERIOD_US);
-  // Aktiviere den Interrupt für den Timer
-  timer_enable_intr(TIMER_GROUP_0, TIMER_0);
-  timer_isr_register(TIMER_GROUP_0, TIMER_0, timer_isr, (void *)TIMER_0,
-                     ESP_INTR_FLAG_IRAM, NULL);
-  // Starte den Timer
-  timer_start(TIMER_GROUP_0, TIMER_0);
+  // Alarm-Konfiguration
+  gptimer_alarm_config_t alarm_config = {
+      .alarm_count =
+          1000000 / (DESIRED_FREQ_HZ * 2), // Halbe Periode in Ticks (µs)
+      .reload_count =
+          0, // Nicht neu laden, da auto_reload in der Hauptkonfig ist
+      .flags.auto_reload_on_alarm = true,
+  };
+  gptimer_set_alarm_action(gptimer, &alarm_config);
+
+  // Registriere die Callback-Funktion für den Alarm
+  gptimer_event_callbacks_t cbs = {
+      .on_alarm = timer_on_alarm_cb,
+  };
+  gptimer_register_event_callbacks(gptimer, &cbs, NULL);
+
+  // Aktiviere und starte den Timer
+  gptimer_enable(gptimer);
+  gptimer_start(gptimer);
 
   // Endlosschleife, damit das Programm aktiv bleibt
   while (1) {
