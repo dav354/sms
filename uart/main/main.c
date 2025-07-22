@@ -4,7 +4,6 @@
 #include "esp_intr_alloc.h"
 #include "hal/uart_ll.h"
 #include "soc/uart_struct.h"
-#include "soc/uart_reg.h"
 #include "soc/uart_periph.h"
 #include "string.h"
 
