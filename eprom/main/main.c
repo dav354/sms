@@ -29,7 +29,7 @@ int app_main(void) {
     write_data++;
     addr++;
   }
-  // write_byte(addr, *byte); // wozu?
+
   printf("Finished writing.\n");
 
   // read the data
