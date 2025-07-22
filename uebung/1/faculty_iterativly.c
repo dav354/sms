@@ -1,28 +1,38 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-int faculty(int n) {
-    int ret = 1;
+long faculty(int n) {
+    long ret = 1;
     for (int i = 2; i <= n; ++i) {
         ret *= i;
     }
     return ret;
 }
 
-
-int main() {
+int get_number_from_user() {
     int num;
-
     printf("Enter a non-negative integer: ");
     if (scanf("%d", &num) != 1) {
         printf("Invalid input. Please enter an integer.\n");
-        return 1;
+        exit(1);
+    }
+    return num;
+}
+
+int main(int argc, char *argv[]) {
+    int num;
+
+    if (argc > 1) {
+        num = atoi(argv[1]);
+    } else {
+        num = get_number_from_user();
     }
 
     if (num < 0) {
         printf("Factorial is not defined for negative numbers.\n");
     } else {
-        int result = faculty(num);
-        printf("Factorial of %d is %d\n", num, result);
+        long result = faculty(num);
+        printf("Factorial of %d is %ld\n", num, result);
     }
 
     return 0;
