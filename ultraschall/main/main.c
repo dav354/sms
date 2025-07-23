@@ -1,9 +1,12 @@
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <stdint.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <esp_rom_sys.h>
 
 #define TRIGGER_GPIO 1
 #define ECHO_GPIO 2
