@@ -2,6 +2,7 @@
 #include "driver/gptimer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <stdbool.h>
 
 #define SPEAKER_PIN 21
 #define DESIRED_FREQ_HZ 100 // Ton

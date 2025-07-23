@@ -1,5 +1,6 @@
 #include "driver/i2c.h"
 #include <stdio.h>
+#include <stdint.h>
 
 #define I2C_SCL 6
 #define I2C_SDA 5
